@@ -68,20 +68,21 @@ public class SubscribeServiceRequestHandler extends RequestHandler<SubscribeServ
         String app = request.getHeader("app", "unknown");
         String groupedServiceName = NamingUtils.getGroupedName(serviceName, groupName);
         Service service = Service.newService(namespaceId, groupName, serviceName, true);
-        Subscriber subscriber = new Subscriber(meta.getClientIp(), meta.getClientVersion(), app, meta.getClientIp(),
-                namespaceId, groupedServiceName, 0, request.getClusters());
+
+        Subscriber subscriber = new Subscriber(meta.getClientIp(), meta.getClientVersion(), app, meta.getClientIp(), namespaceId, groupedServiceName, 0, request.getClusters());
+
+
         ServiceInfo serviceInfo = ServiceUtil.selectInstancesWithHealthyProtection(serviceStorage.getData(service),
-                metadataManager.getServiceMetadata(service).orElse(null), subscriber.getCluster(), false,
-                true, subscriber.getIp());
+                metadataManager.getServiceMetadata(service).orElse(null), subscriber.getCluster(), false, true, subscriber.getIp());
+
         if (request.isSubscribe()) {
             clientOperationService.subscribeService(service, subscriber, meta.getConnectionId());
-            NotifyCenter.publishEvent(new SubscribeServiceTraceEvent(System.currentTimeMillis(),
-                    meta.getClientIp(), service.getNamespace(), service.getGroup(), service.getName()));
+            NotifyCenter.publishEvent(new SubscribeServiceTraceEvent(System.currentTimeMillis(), meta.getClientIp(), service.getNamespace(), service.getGroup(), service.getName()));
         } else {
             clientOperationService.unsubscribeService(service, subscriber, meta.getConnectionId());
-            NotifyCenter.publishEvent(new UnsubscribeServiceTraceEvent(System.currentTimeMillis(),
-                    meta.getClientIp(), service.getNamespace(), service.getGroup(), service.getName()));
+            NotifyCenter.publishEvent(new UnsubscribeServiceTraceEvent(System.currentTimeMillis(), meta.getClientIp(), service.getNamespace(), service.getGroup(), service.getName()));
         }
+        System.out.println(String.format("Subscribe Request service: %s,Namespace %s,LastUpdatedTime %s,isSubscribe %s ",service.getGroupedServiceName(),service.getNamespace(),service.getLastUpdatedTime(),request.isSubscribe()));
         return new SubscribeServiceResponse(ResponseCode.SUCCESS.getCode(), "success", serviceInfo);
     }
 }

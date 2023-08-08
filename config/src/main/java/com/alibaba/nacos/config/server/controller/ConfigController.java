@@ -99,7 +99,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping(Constants.CONFIG_CONTROLLER_PATH)
 public class ConfigController {
-    
+
     private static final Logger LOGGER = LoggerFactory.getLogger(ConfigController.class);
     
     private static final String EXPORT_CONFIG_FILE_NAME = "nacos_config_export_";
@@ -222,6 +222,7 @@ public class ConfigController {
         
         final String clientIp = RequestUtil.getRemoteIp(request);
         String isNotify = request.getHeader("notify");
+        LOGGER.warn("ConfigController getConfig tenant {},clientIp {},dataId {},group {} isNotify {}",tenant,clientIp,dataId,group,isNotify);
         inner.doGetConfig(request, response, dataId, group, tenant, tag, isNotify, clientIp);
     }
     

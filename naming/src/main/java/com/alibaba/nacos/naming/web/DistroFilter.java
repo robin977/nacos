@@ -28,6 +28,8 @@ import com.alibaba.nacos.naming.misc.HttpClient;
 import com.alibaba.nacos.naming.misc.Loggers;
 import com.alibaba.nacos.naming.misc.UtilsAndCommons;
 import com.alibaba.nacos.common.utils.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.servlet.Filter;
@@ -47,6 +49,7 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.alibaba.nacos.common.constant.RequestUrlConstants.HTTP_PREFIX;
 
@@ -56,7 +59,8 @@ import static com.alibaba.nacos.common.constant.RequestUrlConstants.HTTP_PREFIX;
  * @author nacos
  */
 public class DistroFilter implements Filter {
-    
+
+    private static final Logger logger=LoggerFactory.getLogger(DistroFilter.class);
     private static final int PROXY_CONNECT_TIMEOUT = 2000;
     
     private static final int PROXY_READ_TIMEOUT = 2000;
@@ -95,12 +99,15 @@ public class DistroFilter implements Filter {
             }
             
             if (!method.isAnnotationPresent(CanDistro.class)) {
+                logger.warn("NoCanDistro path:{},method {}, params: {}",path,req.getMethod(),req.getParameterMap().entrySet().stream().filter(item->!item.getKey().equals("accessToken") && !item.getKey().equals("metadata")).map(item->item.getKey()+":"+item.getValue()[0]).collect(Collectors.joining(",")));
                 filterChain.doFilter(req, resp);
                 return;
-            }
+            }//客户端的ip与端口，通过hash到本机上面处理
             String distroTag = distroTagGenerator.getResponsibleTag(req);
-            
+
             if (distroMapper.responsible(distroTag)) {
+                logger.warn("Distro resp path:{},method {}, distroTag {},params: {}",path,req.getMethod(),distroTag,req.getParameterMap().entrySet().stream().filter(item->!item.getKey().equals("accessToken") && !item.getKey().equals("metadata")).map(item->item.getKey()+":"+item.getValue()[0]).collect(Collectors.joining(",")));
+
                 filterChain.doFilter(req, resp);
                 return;
             }
@@ -115,9 +122,11 @@ public class DistroFilter implements Filter {
                         "receive invalid redirect request from peer " + req.getRemoteAddr());
                 return;
             }
-            
+
             final String targetServer = distroMapper.mapSrv(distroTag);
-            
+
+            logger.warn("Distro forward path:{} distroTag {},targetServer {}",path,distroTag,targetServer);
+
             List<String> headerList = new ArrayList<>(16);
             Enumeration<String> headers = req.getHeaderNames();
             while (headers.hasMoreElements()) {

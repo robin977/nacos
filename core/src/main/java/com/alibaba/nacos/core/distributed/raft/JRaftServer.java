@@ -330,10 +330,10 @@ public class JRaftServer {
         
         final Node node = tuple.node;
         if (node.isLeader()) {
-            // The leader node directly applies this request
+            // The leader node directly applies this request 如果当前节点是leader，直接执行
             applyOperation(node, data, closure);
         } else {
-            // Forward to Leader for request processing
+            // Forward to Leader for request processing  如果是follower，重定向到leader
             invokeToLeader(group, data, rpcRequestTimeoutMs, closure);
         }
         return future;

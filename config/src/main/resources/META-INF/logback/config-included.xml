@@ -247,6 +247,7 @@
     <logger name="com.alibaba.nacos.config.clientLog" additivity="false">
         <level value="info"/>
         <appender-ref ref="clientLog"/>
+        <appender-ref ref="CONSOLE"/>
     </logger>
 
     <logger name="com.alibaba.nacos.config.sdkLog" additivity="false">

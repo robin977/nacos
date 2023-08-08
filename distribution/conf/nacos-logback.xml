@@ -676,6 +676,7 @@
     <logger name="com.alibaba.nacos.config.clientLog" additivity="false">
         <level value="info"/>
         <appender-ref ref="clientLog"/>
+        <appender-ref ref="CONSOLE"/>
     </logger>
 
     <logger name="com.alibaba.nacos.config.notifyLog" additivity="false">
@@ -705,6 +706,7 @@
 
     <logger name="com.alibaba.nacos.core.protocol.raft" additivity="false">
         <level value="INFO"/>
+        <appender-ref ref="CONSOLE"/>
         <appender-ref ref="protocol-raft"/>
     </logger>
 

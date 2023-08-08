@@ -101,6 +101,7 @@ class NacosStateMachine extends StateMachineAdapter {
             while (iter.hasNext()) {
                 Status status = Status.OK();
                 try {
+                    // 如果是leader节点，这里done不为空，减少反序列化报文的开销
                     if (iter.done() != null) {
                         closure = (NacosClosure) iter.done();
                         message = closure.getMessage();
@@ -117,12 +118,12 @@ class NacosStateMachine extends StateMachineAdapter {
                     }
                     
                     LoggerUtils.printIfDebugEnabled(Loggers.RAFT, "receive log : {}", message);
-                    
+                    // 写请求 DistributedDatabaseOperateImpl
                     if (message instanceof WriteRequest) {
                         Response response = processor.onApply((WriteRequest) message);
                         postProcessor(response, closure);
                     }
-                    
+                    // 一致性读降级走raft流程
                     if (message instanceof ReadRequest) {
                         Response response = processor.onRequest((ReadRequest) message);
                         postProcessor(response, closure);

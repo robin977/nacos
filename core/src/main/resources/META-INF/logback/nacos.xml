@@ -339,7 +339,17 @@
         <appender-ref ref="CONSOLE"/>
         <level value="INFO"/>
     </logger>
-    
+
+    <logger name="com.alibaba.nacos.naming.web">
+        <appender-ref ref="CONSOLE"/>
+        <level value="INFO"/>
+    </logger>
+
+    <logger name="com.alibaba.nacos.config.server.controller">
+        <appender-ref ref="CONSOLE"/>
+        <level value="INFO"/>
+    </logger>
+
     <logger name="com.alibaba.nacos.sys.file.WatchFileCenter">
         <appender-ref ref="CONSOLE"/>
         <level value="INFO"/>
@@ -348,5 +358,10 @@
     <logger name="com.alibaba.nacos.common.executor.ThreadPoolManager">
         <appender-ref ref="CONSOLE"/>
         <level value="INFO"/>
+    </logger>
+
+    <logger name="com.alibaba.nacos.core.protocol.raft" additivity="false">
+        <level value="INFO"/>
+        <appender-ref ref="CONSOLE"/>
     </logger>
 </configuration>
