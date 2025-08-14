@@ -29,10 +29,10 @@ import java.util.Properties;
  * @since 2.1.0
  */
 public abstract class AbstractResourceParser<R> implements ResourceParser<R> {
-    
+
     @Override
     public Resource parse(R request, Secured secured) {
-        String namespaceId = getNamespaceId(request);
+        String namespaceId = getNamespaceId(request);  //getTenant
         String group = getGroup(request);
         String name = getResourceName(request);
         Properties properties = getProperties(request);
@@ -41,7 +41,7 @@ public abstract class AbstractResourceParser<R> implements ResourceParser<R> {
         injectTagsToProperties(properties, secured);
         return new Resource(namespaceId, group, name, secured.signType(), properties);
     }
-    
+
     /**
      * Get namespaceId from request.
      *
@@ -49,7 +49,7 @@ public abstract class AbstractResourceParser<R> implements ResourceParser<R> {
      * @return namespaceId
      */
     protected abstract String getNamespaceId(R request);
-    
+
     /**
      * Get group name from request.
      *
@@ -57,7 +57,7 @@ public abstract class AbstractResourceParser<R> implements ResourceParser<R> {
      * @return group name
      */
     protected abstract String getGroup(R request);
-    
+
     /**
      * Get resource name from request.
      *
@@ -65,7 +65,7 @@ public abstract class AbstractResourceParser<R> implements ResourceParser<R> {
      * @return resource name
      */
     protected abstract String getResourceName(R request);
-    
+
     /**
      * Get custom properties from request.
      *
@@ -73,7 +73,7 @@ public abstract class AbstractResourceParser<R> implements ResourceParser<R> {
      * @return custom properties
      */
     protected abstract Properties getProperties(R request);
-    
+
     /**
      * Inject tags defined in {@link Secured#tags()} into Resource properties, both key and value.
      *

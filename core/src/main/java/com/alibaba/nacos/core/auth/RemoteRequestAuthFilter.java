@@ -45,36 +45,36 @@ import java.lang.reflect.Method;
  */
 @Component
 public class RemoteRequestAuthFilter extends AbstractRequestFilter {
-    
+
     private final AuthConfigs authConfigs;
-    
+
     private final GrpcProtocolAuthService protocolAuthService;
-    
+
     public RemoteRequestAuthFilter(AuthConfigs authConfigs) {
         this.authConfigs = authConfigs;
         this.protocolAuthService = new GrpcProtocolAuthService(authConfigs);
         this.protocolAuthService.initialize();
     }
-    
+
     @Override
     public Response filter(Request request, RequestMeta meta, Class handlerClazz) throws NacosException {
-        
+
         try {
-            
+
             Method method = getHandleMethod(handlerClazz);
             if (method.isAnnotationPresent(Secured.class) && authConfigs.isAuthEnabled()) {
-                
+
                 if (Loggers.AUTH.isDebugEnabled()) {
                     Loggers.AUTH.debug("auth start, request: {}", request.getClass().getSimpleName());
                 }
-                
+
                 Secured secured = method.getAnnotation(Secured.class);
                 if (!protocolAuthService.enableAuth(secured)) {
                     return null;
                 }
                 String clientIp = meta.getClientIp();
                 request.putHeader(Constants.Identity.X_REAL_IP, clientIp);
-                Resource resource = protocolAuthService.parseResource(request, secured);
+                Resource resource = protocolAuthService.parseResource(request, secured); //解析请求中的资源,namespaceId, group, name
                 IdentityContext identityContext = protocolAuthService.parseIdentity(request);
                 boolean result = protocolAuthService.validateIdentity(identityContext, resource);
                 RequestContext requestContext = RequestContextHolder.getContext();
@@ -104,11 +104,11 @@ public class RemoteRequestAuthFilter extends AbstractRequestFilter {
             return defaultResponseInstance;
         } catch (Exception e) {
             Response defaultResponseInstance = getDefaultResponseInstance(handlerClazz);
-            
+
             defaultResponseInstance.setErrorInfo(NacosException.SERVER_ERROR, ExceptionUtil.getAllExceptionMsg(e));
             return defaultResponseInstance;
         }
-        
+
         return null;
     }
 }

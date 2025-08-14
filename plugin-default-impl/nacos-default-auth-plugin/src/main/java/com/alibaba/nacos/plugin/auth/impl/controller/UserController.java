@@ -71,26 +71,26 @@ import java.util.List;
 @RestController("user")
 @RequestMapping({"/v1/auth", "/v1/auth/users"})
 public class UserController {
-    
+
     @Autowired
     private TokenManagerDelegate jwtTokenManager;
-    
+
     @Autowired
     @Deprecated
     private AuthenticationManager authenticationManager;
-    
+
     @Autowired
     private NacosUserDetailsServiceImpl userDetailsService;
-    
+
     @Autowired
     private NacosRoleServiceImpl roleService;
-    
+
     @Autowired
     private AuthConfigs authConfigs;
-    
+
     @Autowired
     private IAuthenticationManager iAuthenticationManager;
-    
+
     /**
      * Create a new user.
      *
@@ -115,7 +115,7 @@ public class UserController {
         userDetailsService.createUser(username, PasswordEncoderUtil.encode(password));
         return RestResultUtils.success("create user ok!");
     }
-    
+
     /**
      * Create a admin user only not exist admin user can use.
      */
@@ -128,7 +128,7 @@ public class UserController {
             if (StringUtils.isBlank(password)) {
                 password = PasswordGeneratorUtil.generateRandomPassword();
             }
-            
+
             String username = AuthConstants.DEFAULT_USER;
             userDetailsService.createUser(username, PasswordEncoderUtil.encode(password));
             roleService.addAdminRole(username);
@@ -140,7 +140,7 @@ public class UserController {
             return RestResultUtils.failed(HttpStatus.NOT_IMPLEMENTED.value(), "not support");
         }
     }
-    
+
     /**
      * Delete an existed user.
      *
@@ -162,7 +162,7 @@ public class UserController {
         userDetailsService.deleteUser(username);
         return RestResultUtils.success("delete user ok!");
     }
-    
+
     /**
      * Update an user.
      *
@@ -192,17 +192,17 @@ public class UserController {
             response.sendError(HttpServletResponse.SC_FORBIDDEN, "authorization failed!");
             return null;
         }
-        
+
         User user = userDetailsService.getUserFromDatabase(username);
         if (user == null) {
             throw new IllegalArgumentException("user " + username + " not exist!");
         }
-        
+
         userDetailsService.updateUserPassword(username, PasswordEncoderUtil.encode(newPassword));
-        
+
         return RestResultUtils.success("update user ok!");
     }
-    
+
     private boolean hasPermission(String username, HttpServletRequest request)
             throws HttpSessionRequiredException, AccessException {
         if (!authConfigs.isAuthEnabled()) {
@@ -228,7 +228,7 @@ public class UserController {
         // same user
         return user.getUserName().equals(username);
     }
-    
+
     /**
      * Get paged users.
      *
@@ -243,14 +243,14 @@ public class UserController {
             @RequestParam(name = "username", required = false, defaultValue = "") String username) {
         return userDetailsService.getUsersFromDatabase(pageNo, pageSize, username);
     }
-    
+
     @GetMapping(params = "search=blur")
     @Secured(resource = AuthConstants.CONSOLE_RESOURCE_NAME_PREFIX + "users", action = ActionTypes.READ)
     public Page<User> fuzzySearchUser(@RequestParam int pageNo, @RequestParam int pageSize,
             @RequestParam(name = "username", required = false, defaultValue = "") String username) {
         return userDetailsService.findUsersLike4Page(username, pageNo, pageSize);
     }
-    
+
     /**
      * Login to Nacos
      *
@@ -266,14 +266,14 @@ public class UserController {
     @PostMapping("/login")
     public Object login(@RequestParam String username, @RequestParam String password, HttpServletResponse response,
             HttpServletRequest request) throws AccessException, IOException {
-        
+        //客户端由clientWorker发起/v1/auth/users/login登录请求，服务端会调用authenticate方法，返回token给客户端
         if (AuthSystemTypes.NACOS.name().equalsIgnoreCase(authConfigs.getNacosAuthSystemType())
                 || AuthSystemTypes.LDAP.name().equalsIgnoreCase(authConfigs.getNacosAuthSystemType())) {
-            
+
             NacosUser user = iAuthenticationManager.authenticate(request);
-            
+
             response.addHeader(AuthConstants.AUTHORIZATION_HEADER, AuthConstants.TOKEN_PREFIX + user.getToken());
-            
+            //客户端ConfigRpcTransportClient.start时调用SecurityProxy.login调用时返回
             ObjectNode result = JacksonUtils.createEmptyJsonNode();
             result.put(Constants.ACCESS_TOKEN, user.getToken());
             result.put(Constants.TOKEN_TTL, jwtTokenManager.getTokenTtlInSeconds(user.getToken()));
@@ -281,11 +281,11 @@ public class UserController {
             result.put(Constants.USERNAME, user.getUserName());
             return result;
         }
-        
+
         // create Authentication class through username and password, the implement class is UsernamePasswordAuthenticationToken
         UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(username,
                 password);
-        
+
         try {
             // use the method authenticate of AuthenticationManager(default implement is ProviderManager) to valid Authentication
             Authentication authentication = authenticationManager.authenticate(authenticationToken);
@@ -300,7 +300,7 @@ public class UserController {
             return RestResultUtils.failed(HttpStatus.UNAUTHORIZED.value(), null, "Login failed");
         }
     }
-    
+
     /**
      * Update password.
      *
@@ -316,7 +316,7 @@ public class UserController {
         String username = ((UserDetails) principal).getUsername();
         User user = userDetailsService.getUserFromDatabase(username);
         String password = user.getPassword();
-        
+
         // TODO: throw out more fine grained exceptions
         try {
             if (PasswordEncoderUtil.matches(oldPassword, password)) {
@@ -328,7 +328,7 @@ public class UserController {
             return RestResultUtils.failed(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Update userpassword failed");
         }
     }
-    
+
     /**
      * Fuzzy matching username.
      *

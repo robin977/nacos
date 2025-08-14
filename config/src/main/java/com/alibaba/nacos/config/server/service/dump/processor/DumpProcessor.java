@@ -38,17 +38,17 @@ import java.util.Objects;
  * @date 2020/7/5 12:19 PM
  */
 public class DumpProcessor implements NacosTaskProcessor {
-    
+
     final ConfigInfoPersistService configInfoPersistService;
-    
+
     final ConfigInfoGrayPersistService configInfoGrayPersistService;
-    
+
     public DumpProcessor(ConfigInfoPersistService configInfoPersistService,
             ConfigInfoGrayPersistService configInfoGrayPersistService) {
         this.configInfoPersistService = configInfoPersistService;
         this.configInfoGrayPersistService = configInfoGrayPersistService;
     }
-    
+
     @Override
     public boolean process(NacosTask task) {
         DumpTask dumpTask = (DumpTask) task;
@@ -59,7 +59,7 @@ public class DumpProcessor implements NacosTaskProcessor {
         long lastModifiedOut = dumpTask.getLastModified();
         String handleIp = dumpTask.getHandleIp();
         String grayName = dumpTask.getGrayName();
-        
+
         ConfigDumpEvent.ConfigDumpEventBuilder build = ConfigDumpEvent.builder().namespaceId(tenant).dataId(dataId)
                 .group(group).grayName(grayName).handleIp(handleIp);
         String type = "formal";
@@ -67,7 +67,7 @@ public class DumpProcessor implements NacosTaskProcessor {
             type = grayName;
         }
         LogUtil.DUMP_LOG.info("[dump] process {} task. groupKey={}", type, dumpTask.getGroupKey());
-        
+
         if (StringUtils.isNotBlank(grayName)) {
             ConfigInfoGrayWrapper cf = configInfoGrayPersistService.findConfigInfo4Gray(dataId, group, tenant,
                     grayName);
@@ -80,14 +80,15 @@ public class DumpProcessor implements NacosTaskProcessor {
             build.grayRule(Objects.isNull(cf) ? null : cf.getGrayRule());
             return DumpConfigHandler.configDump(build.build());
         }
-        
+        //加载数据中的配置信息
         ConfigInfoWrapper cf = configInfoPersistService.findConfigInfo(dataId, group, tenant);
+        System.out.println(String.format("DumpProcessor#process（ConfigInfo) %s,%s,%s",cf.getTenant(),cf.getGroup(),cf.getContent()));
         build.remove(Objects.isNull(cf));
         build.content(Objects.isNull(cf) ? null : cf.getContent());
         build.type(Objects.isNull(cf) ? null : cf.getType());
         build.encryptedDataKey(Objects.isNull(cf) ? null : cf.getEncryptedDataKey());
         build.lastModifiedTs(Objects.isNull(cf) ? lastModifiedOut : cf.getLastModified());
         return DumpConfigHandler.configDump(build.build());
-        
+
     }
 }

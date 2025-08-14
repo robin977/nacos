@@ -42,10 +42,10 @@ import java.util.List;
  */
 @SuppressWarnings("PMD.ServiceOrDaoClassShouldEndWithImplRule")
 public class NacosAuthPluginService implements AuthPluginService {
-    
+
     @Deprecated
     private static final String USER_IDENTITY_PARAM_KEY = "user";
-    
+
     private static final List<String> IDENTITY_NAMES = new LinkedList<String>() {
         {
             add(AuthConstants.AUTHORIZATION_HEADER);
@@ -54,20 +54,20 @@ public class NacosAuthPluginService implements AuthPluginService {
             add(AuthConstants.PARAM_PASSWORD);
         }
     };
-    
+
     protected IAuthenticationManager authenticationManager;
-    
+
     @Override
     public Collection<String> identityNames() {
         return IDENTITY_NAMES;
     }
-    
+
     @Override
     public boolean enableAuth(ActionTypes action, String type) {
         // enable all of action and type
         return true;
     }
-    
+
     @Override
     public boolean validateIdentity(IdentityContext identityContext, Resource resource) throws AccessException {
         checkNacosAuthManager();
@@ -85,33 +85,33 @@ public class NacosAuthPluginService implements AuthPluginService {
                 nacosUser.getUserName());
         return true;
     }
-    
+
     private String resolveToken(IdentityContext identityContext) {
         String bearerToken = identityContext.getParameter(AuthConstants.AUTHORIZATION_HEADER, StringUtils.EMPTY);
         if (StringUtils.isNotBlank(bearerToken) && bearerToken.startsWith(AuthConstants.TOKEN_PREFIX)) {
             return bearerToken.substring(AuthConstants.TOKEN_PREFIX.length());
         }
-        
+
         return identityContext.getParameter(Constants.ACCESS_TOKEN, StringUtils.EMPTY);
     }
-    
+
     @Override
     public Boolean validateAuthority(IdentityContext identityContext, Permission permission) throws AccessException {
         NacosUser user = (NacosUser) identityContext.getParameter(AuthConstants.NACOS_USER_KEY);
-        authenticationManager.authorize(permission, user);
+        authenticationManager.authorize(permission, user);  //验证用户是否具有此资源的访问权限
         return true;
     }
-    
+
     @Override
     public String getAuthServiceName() {
         return AuthConstants.AUTH_PLUGIN_TYPE;
     }
-    
+
     @Override
     public boolean isLoginEnabled() {
         return ApplicationUtils.getBean(AuthConfigs.class).isAuthEnabled();
     }
-    
+
     /**
      * Only auth enabled and not global admin role existed.
      *
@@ -123,7 +123,7 @@ public class NacosAuthPluginService implements AuthPluginService {
         boolean hasGlobalAdminRole = ApplicationUtils.getBean(IAuthenticationManager.class).hasGlobalAdminRole();
         return authEnabled && !hasGlobalAdminRole;
     }
-    
+
     protected void checkNacosAuthManager() {
         if (null == authenticationManager) {
             authenticationManager = ApplicationUtils.getBean(DefaultAuthenticationManager.class);

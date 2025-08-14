@@ -55,24 +55,24 @@ import static com.alibaba.nacos.config.server.utils.PropertyUtil.GRAY_MIGRATE_FL
 
 /**
  * migrate beta and tag to gray model. should only invoked from config sync notify.
- *
+ * 灰度配置模型的迁移相关操作
  * @author shiyiyue
  */
 @Service
 public class ConfigGrayModelMigrateService {
-    
+
     private static final Logger LOGGER = LoggerFactory.getLogger(ConfigGrayModelMigrateService.class);
-    
+
     ConfigInfoBetaPersistService configInfoBetaPersistService;
-    
+
     ConfigInfoTagPersistService configInfoTagPersistService;
-    
+
     ConfigInfoGrayPersistService configInfoGrayPersistService;
-    
+
     NamespacePersistService namespacePersistService;
-    
+
     boolean oldTableVersion = false;
-    
+
     public ConfigGrayModelMigrateService(ConfigInfoBetaPersistService configInfoBetaPersistService,
             ConfigInfoTagPersistService configInfoTagPersistService,
             ConfigInfoGrayPersistService configInfoGrayPersistService,
@@ -82,7 +82,7 @@ public class ConfigGrayModelMigrateService {
         this.configInfoTagPersistService = configInfoTagPersistService;
         this.namespacePersistService = namespacePersistService;
     }
-    
+
     /**
      * migrate beta&tag to gray .
      */
@@ -94,7 +94,7 @@ public class ConfigGrayModelMigrateService {
         }
         doCheckMigrate();
     }
-    
+
     /**
      * handler tag v1 config.
      *
@@ -108,7 +108,7 @@ public class ConfigGrayModelMigrateService {
         if (!PropertyUtil.isGrayCompatibleModel() || !oldTableVersion) {
             return;
         }
-        
+
         if (StringUtils.isNotBlank(configRequestInfo.getCasMd5())) {
             ConfigOperateResult configOperateResult = configInfoTagPersistService.insertOrUpdateTagCas(configInfo,
                     configForm.getTag(), configRequestInfo.getSrcIp(), configForm.getSrcUser());
@@ -124,7 +124,7 @@ public class ConfigGrayModelMigrateService {
                     configForm.getSrcUser());
         }
     }
-    
+
     /**
      * handle old beta.
      *
@@ -155,7 +155,7 @@ public class ConfigGrayModelMigrateService {
                     configRequestInfo.getSrcIp(), configForm.getSrcUser());
         }
     }
-    
+
     /**
      * delete beta and tag.
      *
@@ -177,9 +177,9 @@ public class ConfigGrayModelMigrateService {
             configInfoTagPersistService.removeConfigInfoTag(dataId, group, namespaceId, grayName.substring(4), clientIp,
                     srcUser);
         }
-        
+
     }
-    
+
     /**
      * migrate single config beta.
      *
@@ -211,9 +211,9 @@ public class ConfigGrayModelMigrateService {
                     GrayRuleManager.serializeConfigGrayPersistInfo(localConfigGrayPersistInfo), NetUtils.localIP(),
                     "nacos_auto_migrate");
         }
-        
+
     }
-    
+
     /**
      * migrate single config tag.
      *
@@ -248,9 +248,9 @@ public class ConfigGrayModelMigrateService {
                     "nacos_auto_migrate");
         }
     }
-    
+
     private void doCheckMigrate() throws Exception {
-        
+
         int migrateMulti = EnvUtil.getProperty("nacos.gray.migrate.executor.multi", Integer.class, Integer.valueOf(4));
         ThreadPoolExecutor executorService = new ThreadPoolExecutor(ThreadUtils.getSuitableThreadCount(migrateMulti),
                 ThreadUtils.getSuitableThreadCount(migrateMulti), 60L, TimeUnit.SECONDS,
@@ -265,7 +265,7 @@ public class ConfigGrayModelMigrateService {
                     pageSize);
             if (page != null) {
                 for (ConfigInfoBetaWrapper cf : page.getPageItems()) {
-                    
+
                     executorService.execute(() -> {
                         GRAY_MIGRATE_FLAG.set(true);
                         ConfigInfoGrayWrapper configInfo4Gray = configInfoGrayPersistService.findConfigInfo4Gray(
@@ -282,26 +282,26 @@ public class ConfigGrayModelMigrateService {
                             GRAY_MIGRATE_FLAG.set(false);
                         }
                     });
-                    
+
                 }
                 actualRowCount += page.getPageItems().size();
                 DEFAULT_LOG.info("[gray-migrate-beta] submit gray task {} / {}", actualRowCount, rowCount);
-                
+
             }
         }
-        
+
         try {
             int unfinishedTaskCount = 0;
             while ((unfinishedTaskCount = executorService.getQueue().size() + executorService.getActiveCount()) > 0) {
                 DEFAULT_LOG.info("[gray-migrate-beta] wait {} migrate tasks to be finished", unfinishedTaskCount);
                 Thread.sleep(1000L);
             }
-            
+
         } catch (Exception e) {
             DEFAULT_LOG.error("[gray-migrate-beta] wait  dump tasks to be finished error", e);
             throw e;
         }
-        
+
         rowCount = configInfoTagPersistService.configInfoTagCount();
         pageCount = (int) Math.ceil(rowCount * 1.0 / pageSize);
         actualRowCount = 0;
@@ -310,7 +310,7 @@ public class ConfigGrayModelMigrateService {
                     pageSize);
             if (page != null) {
                 for (ConfigInfoTagWrapper cf : page.getPageItems()) {
-                    
+
                     executorService.execute(() -> {
                         GRAY_MIGRATE_FLAG.set(true);
                         ConfigInfoGrayWrapper configInfo4Gray = configInfoGrayPersistService.findConfigInfo4Gray(
@@ -328,28 +328,28 @@ public class ConfigGrayModelMigrateService {
                             GRAY_MIGRATE_FLAG.set(false);
                         }
                     });
-                    
+
                 }
-                
+
                 actualRowCount += page.getPageItems().size();
                 DEFAULT_LOG.info("[gray-migrate-tag]  submit gray task  {} / {}", actualRowCount, rowCount);
             }
         }
-        
+
         try {
             int unfinishedTaskCount = 0;
             while ((unfinishedTaskCount = executorService.getQueue().size() + executorService.getActiveCount()) > 0) {
                 DEFAULT_LOG.info("[gray-migrate-tag] wait {} migrate tasks to be finished", unfinishedTaskCount);
                 Thread.sleep(1000L);
             }
-            
+
         } catch (Exception e) {
             DEFAULT_LOG.error("[gray-migrate-tag] wait migrate tasks to be finished error", e);
             throw e;
         }
         //shut down migrate executor
         executorService.shutdown();
-        
+
     }
-    
+
 }

@@ -50,20 +50,20 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class SubscribeServiceRequestHandler extends RequestHandler<SubscribeServiceRequest, SubscribeServiceResponse> {
-    
+
     private final ServiceStorage serviceStorage;
-    
+
     private final NamingMetadataManager metadataManager;
-    
+
     private final EphemeralClientOperationServiceImpl clientOperationService;
-    
+
     public SubscribeServiceRequestHandler(ServiceStorage serviceStorage, NamingMetadataManager metadataManager,
             EphemeralClientOperationServiceImpl clientOperationService) {
         this.serviceStorage = serviceStorage;
         this.metadataManager = metadataManager;
         this.clientOperationService = clientOperationService;
     }
-    
+
     @Override
     @TpsControl(pointName = "RemoteNamingServiceSubscribeUnSubscribe", name = "RemoteNamingServiceSubscribeUnsubscribe")
     @Secured(action = ActionTypes.READ)
@@ -75,6 +75,10 @@ public class SubscribeServiceRequestHandler extends RequestHandler<SubscribeServ
         String app = RequestContextHolder.getContext().getBasicContext().getApp();
         String groupedServiceName = NamingUtils.getGroupedName(serviceName, groupName);
         Service service = Service.newService(namespaceId, groupName, serviceName, true);
+
+        System.out.println(String.format("["+Thread.currentThread().getName()+"] "+"handle SubscribeRequest service: %s,Namespace %s,LastUpdatedTime %s,isSubscribe %s ,connectionId:%s",
+                service.getGroupedServiceName(),service.getNamespace(),service.getLastUpdatedTime(),request.isSubscribe(),meta.getConnectionId()));
+
         Subscriber subscriber = new Subscriber(meta.getClientIp(), meta.getClientVersion(), app, meta.getClientIp(),
                 namespaceId, groupedServiceName, 0, request.getClusters());
         ServiceInfo serviceInfo = ServiceUtil.selectInstancesWithHealthyProtection(serviceStorage.getData(service),

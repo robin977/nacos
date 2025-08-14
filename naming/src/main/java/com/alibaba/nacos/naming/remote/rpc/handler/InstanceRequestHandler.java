@@ -44,13 +44,13 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class InstanceRequestHandler extends RequestHandler<InstanceRequest, InstanceResponse> {
-    
+
     private final EphemeralClientOperationServiceImpl clientOperationService;
-    
+
     public InstanceRequestHandler(EphemeralClientOperationServiceImpl clientOperationService) {
         this.clientOperationService = clientOperationService;
     }
-    
+
     @Override
     @TpsControl(pointName = "RemoteNamingInstanceRegisterDeregister", name = "RemoteNamingInstanceRegisterDeregister")
     @Secured(action = ActionTypes.WRITE)
@@ -59,6 +59,8 @@ public class InstanceRequestHandler extends RequestHandler<InstanceRequest, Inst
         Service service = Service.newService(request.getNamespace(), request.getGroupName(), request.getServiceName(),
                 true);
         InstanceUtil.setInstanceIdIfEmpty(request.getInstance(), service.getGroupedServiceName());
+        System.out.println(String.format("["+Thread.currentThread().getName()+"] "+"handle InstanceRequest service: %s,Namespace %s,LastUpdatedTime %s,connectionId:%s ",
+                service.getGroupedServiceName(),service.getNamespace(),service.getLastUpdatedTime(),meta.getConnectionId()));
         switch (request.getType()) {
             case NamingRemoteConstants.REGISTER_INSTANCE:
                 return registerInstance(service, request, meta);
@@ -69,17 +71,19 @@ public class InstanceRequestHandler extends RequestHandler<InstanceRequest, Inst
                         String.format("Unsupported request type %s", request.getType()));
         }
     }
-    
+
     private InstanceResponse registerInstance(Service service, InstanceRequest request, RequestMeta meta)
             throws NacosException {
+        System.out.println(String.format("["+Thread.currentThread().getName()+"] "+"EphemeralInstance 注册实例写入 Group:%s,%s,connectionId:%s",service.getGroup(),service.getName(),meta.getConnectionId()));
         clientOperationService.registerInstance(service, request.getInstance(), meta.getConnectionId());
         NotifyCenter.publishEvent(new RegisterInstanceTraceEvent(System.currentTimeMillis(),
                 NamingRequestUtil.getSourceIpForGrpcRequest(meta), true, service.getNamespace(), service.getGroup(),
                 service.getName(), request.getInstance().getIp(), request.getInstance().getPort()));
         return new InstanceResponse(NamingRemoteConstants.REGISTER_INSTANCE);
     }
-    
+
     private InstanceResponse deregisterInstance(Service service, InstanceRequest request, RequestMeta meta) {
+        System.out.println(String.format("["+Thread.currentThread().getName()+"] "+"EphemeralInstance 移除实例写入 Group:%s,%s,connectionId:%s",service.getGroup(),service.getName(),meta.getConnectionId()));
         clientOperationService.deregisterInstance(service, request.getInstance(), meta.getConnectionId());
         NotifyCenter.publishEvent(new DeregisterInstanceTraceEvent(System.currentTimeMillis(),
                 NamingRequestUtil.getSourceIpForGrpcRequest(meta), true, DeregisterInstanceReason.REQUEST,
@@ -87,5 +91,5 @@ public class InstanceRequestHandler extends RequestHandler<InstanceRequest, Inst
                 request.getInstance().getPort()));
         return new InstanceResponse(NamingRemoteConstants.DE_REGISTER_INSTANCE);
     }
-    
+
 }
